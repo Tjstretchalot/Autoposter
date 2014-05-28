@@ -4,6 +4,8 @@ import java.awt.BorderLayout;
 import java.awt.GridLayout;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -44,7 +46,7 @@ public class AutoposterPanel extends JPanel {
 	private Timer timer;
 	private List<Runnable> runnables;
 	
-	private JPanel top, bottom, centertop, center, left, right;
+	private JPanel top, bottom, centertop, centertop1, centertop2, center, left, right;
 	
 	private JLabel nextPost;
 	private JButton submitNow;
@@ -59,10 +61,14 @@ public class AutoposterPanel extends JPanel {
 	private JLabel subredditLabel;
 	private JTextField subreddit;
 	private JTextArea text;
+	private JCheckBox weeklyOrEveryX;
 	private JComboBox<String> day;
 	private JComboBox<String> hour;
+	private JComboBox<String> everyX;
+	private JLabel nextStartLabel;
 	
 	private JCheckBox pause;
+	private long lastPost;
 	
 	private char[] rememberedUsername;
 	private char[] rememberedPassword;
@@ -122,8 +128,42 @@ public class AutoposterPanel extends JPanel {
 		});
 		username = new JTextField(15);
 		username.setText("Username");
+		username.addFocusListener(new FocusListener() {
+
+			@Override
+			public void focusGained(FocusEvent e) {
+				if(username.getText() != null && username.getText().equals("Username")) {
+					username.setText("");
+				}
+			}
+
+			@Override
+			public void focusLost(FocusEvent e) {
+				if(username.getText() == null || username.getText().isEmpty()) {
+					username.setText("Username");
+				}
+			}
+			
+		});
 		password = new JPasswordField(15);
 		password.setText("Password");
+		password.addFocusListener(new FocusListener() {
+
+			@Override
+			public void focusGained(FocusEvent e) {
+				if(password.getPassword() != null && new String(password.getPassword()).equals("Password")) {
+					password.setText("");
+				}
+			}
+
+			@Override
+			public void focusLost(FocusEvent e) {
+				if(password.getPassword() == null || password.getPassword().length == 0) {
+					password.setText("Password");
+				}
+			}
+			
+		});
 		
 		editLoginInfo = new JCheckBox("Edit login info");
 		editLoginInfo.setSelected(true);
@@ -134,13 +174,11 @@ public class AutoposterPanel extends JPanel {
 				if(!editLoginInfo.isSelected()) {
 					username.setText("Username");
 					password.setText("Password");
+					
 				}else {
 					rememberedUsername = null;
 					rememberedPassword = null;
-					pause.setSelected(true);
-					submitNow.setEnabled(false);
-					
-					nextPost.setText("");
+					pause();
 				}
 			}
 		});
@@ -184,23 +222,17 @@ public class AutoposterPanel extends JPanel {
 
 			@Override
 			public void insertUpdate(DocumentEvent e) {
-				nextPost.setText("");
-				pause.setSelected(true);
-				submitNow.setEnabled(false);
+				pause();
 			}
 
 			@Override
 			public void removeUpdate(DocumentEvent e) {
-				nextPost.setText("");
-				pause.setSelected(true);
-				submitNow.setEnabled(false);
+				pause();
 			}
 
 			@Override
 			public void changedUpdate(DocumentEvent e) {
-				nextPost.setText("");
-				pause.setSelected(true);
-				submitNow.setEnabled(false);
+				pause();
 			}
 			
 		});
@@ -210,23 +242,17 @@ public class AutoposterPanel extends JPanel {
 
 			@Override
 			public void insertUpdate(DocumentEvent e) {
-				nextPost.setText("");
-				pause.setSelected(true);
-				submitNow.setEnabled(false);
+				pause();
 			}
 
 			@Override
 			public void removeUpdate(DocumentEvent e) {
-				nextPost.setText("");
-				pause.setSelected(true);
-				submitNow.setEnabled(false);
+				pause();
 			}
 
 			@Override
 			public void changedUpdate(DocumentEvent e) {
-				nextPost.setText("");
-				pause.setSelected(true);
-				submitNow.setEnabled(false);
+				pause();
 			}
 			
 		});
@@ -239,30 +265,65 @@ public class AutoposterPanel extends JPanel {
 
 			@Override
 			public void insertUpdate(DocumentEvent e) {
-				nextPost.setText("");
-				pause.setSelected(true);
-				submitNow.setEnabled(false);
+				pause();
 			}
 
 			@Override
 			public void removeUpdate(DocumentEvent e) {
-				nextPost.setText("");
-				pause.setSelected(true);
-				submitNow.setEnabled(false);
+				pause();
 			}
 
 			@Override
 			public void changedUpdate(DocumentEvent e) {
-				nextPost.setText("");
-				pause.setSelected(true);
-				submitNow.setEnabled(false);
+				pause();
 			}
 			
 		});
+		weeklyOrEveryX = new JCheckBox("Every x time?");
+		weeklyOrEveryX.setToolTipText("Instead of doing it every week/day, would you rather do it every x hours/days?");
+		weeklyOrEveryX.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if(weeklyOrEveryX.isSelected()) {
+					pause();
+					everyX.setEnabled(true);
+					day.setEnabled(false);
+					hour.setEnabled(false);
+				}else {
+					everyX.setEnabled(false);
+					day.setEnabled(true);
+					hour.setEnabled(true);
+					nextStartLabel.setText("");
+				}
+			}
+			
+		});
+		nextStartLabel = new JLabel();
+		Timer timer2 = new Timer(1000, new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				if(weeklyOrEveryX.isSelected()) {
+					int minute = Calendar.getInstance().get(Calendar.MINUTE);
+					int timeTillHourRolls = 60 - minute;
+					if(timeTillHourRolls == 0)
+						timeTillHourRolls = 60;
+					nextStartLabel.setText("Next start: " + timeTillHourRolls + " minute" + (timeTillHourRolls > 1 ? "s" : ""));
+				}
+			}
+			
+		});
+		timer2.start();
+		
+		
 		day = new JComboBox<>(new String[]{"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Every day"});
 		hour = new JComboBox<>(new String[]{"00:00", "01:00", "02:00", "03:00", "04:00", "05:00", "06:00", "07:00", 
 		"08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00", 
 		"20:00", "21:00", "22:00", "23:00"});
+		everyX = new JComboBox<>(new String[] { "6 hours", "12 hours", "1 day", "2 days", "3 days" });
+		everyX.setEnabled(false);
+		
 		pause = new JCheckBox("Pause");
 		pause.setSelected(true);
 		pause.addActionListener(new ActionListener() {
@@ -295,6 +356,14 @@ public class AutoposterPanel extends JPanel {
 		right = new JPanel();
 		center = new JPanel();
 		centertop = new JPanel();
+		centertop1 = new JPanel();
+		centertop2 = new JPanel();
+	}
+
+	protected void pause() {
+		nextPost.setText("");
+		pause.setSelected(true);
+		submitNow.setEnabled(false);
 	}
 
 	protected User verifyUser() {
@@ -325,6 +394,7 @@ public class AutoposterPanel extends JPanel {
 		}
 		try {
 			user.submitSelfPost(postTitle.getText(), text.getText(), subreddit.getText());
+			lastPost = System.currentTimeMillis();
 		} catch (IOException | ParseException e) {
 			e.printStackTrace();
 			JOptionPane.showMessageDialog(null, "Failed to submit post: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -337,26 +407,34 @@ public class AutoposterPanel extends JPanel {
 		top.add(pause);
 		top.add(editLoginInfo);
 		top.add(submitNow);
-		centertop.setLayout(new GridLayout(2, 2));
+		centertop.setLayout(new GridLayout(2, 1));
+		centertop1.setLayout(new GridLayout(2, 2));
 		
 		JPanel postTitleP = new JPanel();
 		postTitleP.add(postTitleLabel);
 		postTitleP.add(postTitle);
-		centertop.add(postTitleP);
+		centertop1.add(postTitleP);
 		
 		JPanel subredditP = new JPanel();
 		subredditP.add(subredditLabel);
 		subredditP.add(subreddit);
-		centertop.add(subredditP);
+		centertop1.add(subredditP);
 		
 		JPanel tmp = new JPanel();
 		tmp.add(day);
-		centertop.add(tmp);
+		centertop1.add(tmp);
 		tmp = new JPanel();
 		tmp.add(hour);
-		centertop.add(tmp);
+		centertop1.add(tmp);
 		
 //		centertop.add(editLoginInfo);
+		
+		centertop.add(centertop1);
+		
+		centertop2.add(weeklyOrEveryX);
+		centertop2.add(everyX);
+		centertop2.add(nextStartLabel);
+		centertop.add(centertop2);
 		
 		center.add(centertop);
 		JScrollPane sPane = new JScrollPane(text);
@@ -383,6 +461,17 @@ public class AutoposterPanel extends JPanel {
 		c.set(Calendar.MINUTE, 0);
 		c.set(Calendar.SECOND, 0);
 		c.set(Calendar.MILLISECOND, 0);
+		
+		if(weeklyOrEveryX.isSelected()) {
+			if(lastPost == 0) {
+				c.set(Calendar.DAY_OF_MONTH, Calendar.getInstance().get(Calendar.DAY_OF_MONTH));
+				c.set(Calendar.HOUR_OF_DAY, Calendar.getInstance().get(Calendar.HOUR_OF_DAY) + 1);
+				return c;
+			}else {
+				c.setTimeInMillis(lastPost + getEveryXTimeMillis());
+				return c;
+			}
+		}
 		int daySelected = day.getSelectedIndex();
 		if(daySelected < 7) {
 			c.set(Calendar.DAY_OF_MONTH, Calendar.getInstance().get(Calendar.DAY_OF_MONTH));
@@ -400,7 +489,7 @@ public class AutoposterPanel extends JPanel {
 					c.set(Calendar.DAY_OF_MONTH, c.get(Calendar.DAY_OF_MONTH) + 1);
 				break;
 			default:
-				System.err.print("?? calculdateDateAndTimeNext ??");
+				System.err.print("?? calculateDateAndTimeNext ??");
 				JOptionPane.showMessageDialog(null, "Oops! An error occurred: calculateDateAndTimeNext invalid day selected", "An error occurred", JOptionPane.ERROR_MESSAGE);
 				break;
 			}
@@ -409,6 +498,23 @@ public class AutoposterPanel extends JPanel {
 		return c;
 	}
 	
+	private long getEveryXTimeMillis() {
+		int choiceIndex = everyX.getSelectedIndex();
+		switch(choiceIndex) {
+		case 0:
+			return MILLISECONDS_PER_HOUR * 6;
+		case 1:
+			return MILLISECONDS_PER_HOUR * 12;
+		case 2:
+			return MILLISECONDS_PER_DAY;
+		case 3:
+			return MILLISECONDS_PER_DAY * 2;
+		case 4:
+			return MILLISECONDS_PER_DAY * 3;
+		}
+		return 0;
+	}
+
 	private static void addB(StringBuffer buffer, long n, String name) {
 		if(n == 0)
 			return;
