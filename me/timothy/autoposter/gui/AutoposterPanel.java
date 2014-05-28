@@ -47,6 +47,7 @@ public class AutoposterPanel extends JPanel {
 	private JPanel top, bottom, centertop, center, left, right;
 	
 	private JLabel nextPost;
+	private JButton submitNow;
 	
 	private JTextField username;
 	private JPasswordField password;
@@ -109,6 +110,16 @@ public class AutoposterPanel extends JPanel {
 				}
 			}
 		});
+		submitNow = new JButton("Submit now!");
+		submitNow.setEnabled(false);
+		submitNow.addActionListener(new ActionListener() {
+
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				doSubmit();
+			}
+			
+		});
 		username = new JTextField(15);
 		username.setText("Username");
 		password = new JPasswordField(15);
@@ -127,6 +138,8 @@ public class AutoposterPanel extends JPanel {
 					rememberedUsername = null;
 					rememberedPassword = null;
 					pause.setSelected(true);
+					submitNow.setEnabled(false);
+					
 					nextPost.setText("");
 				}
 			}
@@ -173,18 +186,21 @@ public class AutoposterPanel extends JPanel {
 			public void insertUpdate(DocumentEvent e) {
 				nextPost.setText("");
 				pause.setSelected(true);
+				submitNow.setEnabled(false);
 			}
 
 			@Override
 			public void removeUpdate(DocumentEvent e) {
 				nextPost.setText("");
 				pause.setSelected(true);
+				submitNow.setEnabled(false);
 			}
 
 			@Override
 			public void changedUpdate(DocumentEvent e) {
 				nextPost.setText("");
 				pause.setSelected(true);
+				submitNow.setEnabled(false);
 			}
 			
 		});
@@ -196,18 +212,21 @@ public class AutoposterPanel extends JPanel {
 			public void insertUpdate(DocumentEvent e) {
 				nextPost.setText("");
 				pause.setSelected(true);
+				submitNow.setEnabled(false);
 			}
 
 			@Override
 			public void removeUpdate(DocumentEvent e) {
 				nextPost.setText("");
 				pause.setSelected(true);
+				submitNow.setEnabled(false);
 			}
 
 			@Override
 			public void changedUpdate(DocumentEvent e) {
 				nextPost.setText("");
 				pause.setSelected(true);
+				submitNow.setEnabled(false);
 			}
 			
 		});
@@ -222,18 +241,21 @@ public class AutoposterPanel extends JPanel {
 			public void insertUpdate(DocumentEvent e) {
 				nextPost.setText("");
 				pause.setSelected(true);
+				submitNow.setEnabled(false);
 			}
 
 			@Override
 			public void removeUpdate(DocumentEvent e) {
 				nextPost.setText("");
 				pause.setSelected(true);
+				submitNow.setEnabled(false);
 			}
 
 			@Override
 			public void changedUpdate(DocumentEvent e) {
 				nextPost.setText("");
 				pause.setSelected(true);
+				submitNow.setEnabled(false);
 			}
 			
 		});
@@ -249,14 +271,18 @@ public class AutoposterPanel extends JPanel {
 			public void actionPerformed(ActionEvent e) {
 				if(rememberedUsername == null || rememberedPassword == null) {
 					pause.setSelected(true);
+					submitNow.setEnabled(false);
 					JOptionPane.showMessageDialog(null, "You must first input your login credentials", "Cannot unpause", JOptionPane.WARNING_MESSAGE);
 				}else if(postTitle.getText().length() == 0) {
 					pause.setSelected(true);
+					submitNow.setEnabled(false);
 					JOptionPane.showMessageDialog(null, "You must first state the post title");
 				}else if(subreddit.getText().length() == 0) {
 					pause.setSelected(true);
+					submitNow.setEnabled(false);
 					JOptionPane.showMessageDialog(null, "You must first state the subreddit");
 				}
+				submitNow.setEnabled(true);
 			}
 			
 		});
@@ -284,7 +310,15 @@ public class AutoposterPanel extends JPanel {
 		}
 	}
 	protected void doSubmit() {
-		User user = verifyUser();
+		RestClient rClient = new HttpRestClient();
+		rClient.setUserAgent("Tjstretchalot's Autoposter for Moderators");
+		
+		User user = new User(rClient, new String(rememberedUsername), new String(rememberedPassword));
+		try {
+			user.connect();
+		}catch(Exception e) {
+			user = null;
+		}
 		if(user == null) {
 			JOptionPane.showMessageDialog(null, "Failed to submit post! Null user!", "Error", JOptionPane.ERROR_MESSAGE);
 			return;
@@ -302,6 +336,7 @@ public class AutoposterPanel extends JPanel {
 		top.add(nextPost);
 		top.add(pause);
 		top.add(editLoginInfo);
+		top.add(submitNow);
 		centertop.setLayout(new GridLayout(2, 2));
 		
 		JPanel postTitleP = new JPanel();
